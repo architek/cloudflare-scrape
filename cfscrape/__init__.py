@@ -48,9 +48,11 @@ class CloudflareScraper(Session):
         self.delay = kwargs.pop("delay", 8)
         super(CloudflareScraper, self).__init__(*args, **kwargs)
 
+        logging.debug("Cfscrape User Agent is <%s>", self.headers["User-Agent"])
         if "requests" in self.headers["User-Agent"]:
             # Set a random User-Agent if no custom User-Agent has been set
             self.headers["User-Agent"] = DEFAULT_USER_AGENT
+            logging.debug("Cfscrape User Agent changed to <%s>", self.headers["User-Agent"])
 
     def is_cloudflare_challenge(self, resp):
         return (
@@ -127,7 +129,7 @@ class CloudflareScraper(Session):
         js = re.sub(r"[\n\\']", "", js)
 
         if "toFixed" not in js:
-            raise ValueError("Error parsing Cloudflare IUAM Javascript challenge. %s" % BUG_REPORT)
+            raise ValueError("Error parsing Cloudflare IUAM Javascript challenge. %s\nBody is:\n%s" % (BUG_REPORT, body))
 
         # Use vm.runInNewContext to safely evaluate code
         # The sandboxed code cannot use the Node.js standard library
@@ -141,7 +143,7 @@ class CloudflareScraper(Session):
                     " README's Dependencies section: https://github.com/Anorov/cloudflare-scrape#dependencies.")
             raise
         except Exception:
-            logging.error("Error executing Cloudflare IUAM Javascript. %s" % BUG_REPORT)
+            logging.error("Error executing Cloudflare IUAM Javascript. %s\nBody is:\n%s", BUG_REPORT, body)
             raise
 
         try:
